@@ -1,43 +1,67 @@
-⚡ APEX LIVE — Free Crypto Signal Scanner
-A lightweight, free, real-time crypto trading intelligence tool powered by live Binance data. No signup. No API key. No cost. Ever.
-🔗 Live Tool: syed-uzair-ahmed.github.io/apex-live
+# ⚡ APEX LIVE — Free Crypto Signal Scanner
 
-What It Does
-APEX LIVE scans the crypto market in real time and helps you spot trading opportunities before they happen — using the same data professional traders use, completely free.
+**Lightweight. Free. Real-time. No signup needed.**
 
-Features
+🔗 **Live Tool → [Click here to open](https://syed-uzair-ahmed.github.io/apex-live)**
 
-⚡ Signal Scanner — Detects GOD signals, early movers, and momentum plays across 40+ coins simultaneously using 10 detection engines
-🐋 Whale Feed — Track large trades from $10K to $1M+ in real time. See who is buying and who is selling big
-📊 Market Data — Live Open Interest, Long/Short ratio, Liquidations, and Taker Buy/Sell ratio from Binance Futures
-✅ Pre-Trade Checklist — 9-step verification before every trade so you never enter on emotion
-📐 Position Size Calculator — ATR-based sizing tells you exactly how much to trade based on your account size and risk tolerance
+---
 
+## What is this?
 
-Why Use This
+A free real-time crypto trading tool powered by live Binance data. It scans 40+ coins simultaneously and tells you exactly which ones to watch, which ones to enter, and which ones to avoid — all from your browser, no account needed.
 
-100% free — no subscription, no account, no hidden fees
-Lightweight — single HTML file, loads in seconds
-No data collection — your information is never stored
-Works on mobile and desktop
-Connects directly to Binance public API from your browser
-Auto-refreshes every 15 minutes
+---
 
+## Features
 
-How to Use
+| Feature | What it does |
+|---|---|
+| ⚡ Signal Scanner | Detects GOD signals, early movers and momentum plays using 10 engines |
+| 🐋 Whale Feed | Track large trades from $10K to $1M+ in real time |
+| 📊 Market Data | Live Open Interest, Long/Short ratio and Liquidations |
+| ✅ Pre-Trade Check | 9-step verification before every trade |
+| 📐 Position Calculator | Tells you exactly how much to trade based on your account size |
 
-Open the live link above
-Click Scan Market
-Look for GOD Signal or ENTER badges
-Click 9-Step Check on any coin before trading
-Use the Position Calculator to size your trade correctly
-Set your stop loss and take profit before entering
+---
 
+## Why use this
 
-Signal Guide
-SignalMeaning🔥 GOD SignalAll 10 engines agree — highest confidence setup✅ EnterStrong setup — valid to trade with discipline⚡ Early MoverVolume building before price moves — get in early👁 WatchPartial setup — monitor and wait for confirmation✕ AvoidConditions not met — skip this coin
+- ✅ 100% free — no subscription, no account, no hidden fees
+- ✅ Lightweight — single page, loads in seconds
+- ✅ No data collected — nothing is stored
+- ✅ Works on mobile and desktop
+- ✅ Auto-refreshes every 15 minutes
+- ✅ Connects directly to Binance public API
 
-Disclaimer
-This tool is for educational purposes only. It is not financial advice. Crypto trading carries significant risk. Always do your own research. Never trade with money you cannot afford to lose.
+---
 
-Built with ❤️ using Binance public API · Free forever
+## Signal guide
+
+| Signal | Meaning |
+|---|---|
+| 🔥 GOD Signal | All 10 engines agree — highest confidence |
+| ✅ Enter | Strong setup — valid to trade |
+| ⚡ Early Mover | Volume building before price moves |
+| 👁 Watch | Monitor and wait for confirmation |
+| ✕ Avoid | Conditions not met — skip this coin |
+
+---
+
+## How to use
+
+1. Open the live link above
+2. Click **Scan Market**
+3. Look for **GOD Signal** or **Enter** badges
+4. Click **9-Step Check** before entering any trade
+5. Use the **Position Calculator** to size your trade
+6. Set stop loss and take profit **before** clicking buy
+
+---
+
+## Disclaimer
+
+This tool is for educational purposes only. Not financial advice. Crypto trading involves significant risk. Always do your own research. Never trade with money you cannot afford to lose.
+
+---
+
+**Built with live Binance public API · Free forever**
