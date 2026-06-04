@@ -521,6 +521,7 @@ select{background:var(--white);border:1px solid var(--border);color:var(--text);
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
+const PROXY="https://api.allorigins.win/raw?url=";
 let coins=[], mktMode='unknown', fearVal=50;
 let scanFilter='ALL', whaleFilt='ALL', whaleMinSize=100000;
 let selRisk=1, autoTmr=null, cdVal=60, allWhaleData=[];
@@ -560,7 +561,6 @@ function volAcc(v){
   return(last3[2]/last3[1])*(last3[1]/last3[0]);
 }
 function bbands(p,n=20){const mid=p.slice(-n).reduce((a,b)=>a+b,0)/n;const std=Math.sqrt(p.slice(-n).reduce((a,b)=>a+(b-mid)**2,0)/n);return{upper:mid+2*std,mid,lower:mid-2*std,width:(4*std/mid)*100,pct:(p[p.length-1]-mid-2*std)/(4*std||1)};}
-const PROXY="https://api.allorigins.win/raw?url=";
 async function kl(sym,iv,lim){const url=encodeURIComponent(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${iv}&limit=${lim}`);const r=await fetch(PROXY+url);return r.json();}
 async function getFundingRate(sym){
   try{const r=await fetch(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${sym}USDT&limit=1`);const d=await r.json();return Array.isArray(d)&&d.length?parseFloat(d[0].fundingRate)*100:null;}catch(e){return null;}
@@ -746,10 +746,10 @@ async function runScan(){
   btn.disabled=true;bTxt.innerHTML='<span class="spinner"></span>Scanning...';sTxt.textContent='Fetching market data...';cdVal=60;
   try{
     const[gRes,cRes,fRes]=await Promise.all([
-      fetch('https://api.coingecko.com/api/v3/global'),
+      fetch(PROXY+encodeURIComponent('https://api.coingecko.com/api/v3/global')),
       // Fetch BOTH by volume AND by price change to catch ENA/WLD type moves
-      fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=60&page=1&sparkline=false&price_change_percentage=1h,24h'),
-      fetch('https://api.alternative.me/fng/?limit=1')
+      fetch(PROXY+encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=60&page=1&sparkline=false&price_change_percentage=1h,24h')),
+      fetch(PROXY+encodeURIComponent('https://api.alternative.me/fng/?limit=1'))
     ]);
     const gData=await gRes.json(),cData=await cRes.json();
     let fData;try{fData=await fRes.json();}catch(e){}
@@ -757,7 +757,7 @@ async function runScan(){
     // Also fetch coins sorted by 1hr price change to catch emerging movers
     let movingCoins=[];
     try{
-      const mRes=await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change&per_page=50&page=1&sparkline=false&price_change_percentage=1h,24h');
+      const mRes=await fetch(PROXY+encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change&per_page=50&page=1&sparkline=false&price_change_percentage=1h,24h'));
       movingCoins=await mRes.json();
     }catch(e){}
 
@@ -963,7 +963,7 @@ async function fetchWhales(){
   allWhaleData=[];
   await Promise.allSettled(syms.map(async sym=>{
     try{
-      const r=await fetch(`https://api.binance.com/api/v3/trades?symbol=${sym}&limit=1000`);
+      const r=await fetch(PROXY+encodeURIComponent(`https://api.binance.com/api/v3/trades?symbol=${sym}&limit=1000`));
       const trades=await r.json();
       if(!Array.isArray(trades)) return;
       trades.forEach(t=>{
