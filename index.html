@@ -521,7 +521,23 @@ select{background:var(--white);border:1px solid var(--border);color:var(--text);
 // ═══════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════
-const PROXY="https://api.allorigins.win/raw?url=";
+// No proxy needed - Binance allows browser CORS when not rate limited
+// We use sequential requests with delays to avoid 429 rate limit errors
+const CACHE = {};
+const CACHE_TTL = 60000; // cache for 60 seconds
+
+async function cachedFetch(url, cacheKey) {
+  const now = Date.now();
+  if (CACHE[cacheKey] && now - CACHE[cacheKey].time < CACHE_TTL) {
+    return CACHE[cacheKey].data;
+  }
+  await new Promise(r => setTimeout(r, 80)); // 80ms delay between requests
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(r.status);
+  const data = await r.json();
+  CACHE[cacheKey] = { data, time: now };
+  return data;
+}
 let coins=[], mktMode='unknown', fearVal=50;
 let scanFilter='ALL', whaleFilt='ALL', whaleMinSize=100000;
 let selRisk=1, autoTmr=null, cdVal=60, allWhaleData=[];
@@ -561,8 +577,8 @@ function volAcc(v){
   return(last3[2]/last3[1])*(last3[1]/last3[0]);
 }
 function bbands(p,n=20){const mid=p.slice(-n).reduce((a,b)=>a+b,0)/n;const std=Math.sqrt(p.slice(-n).reduce((a,b)=>a+(b-mid)**2,0)/n);return{upper:mid+2*std,mid,lower:mid-2*std,width:(4*std/mid)*100,pct:(p[p.length-1]-mid-2*std)/(4*std||1)};}
-async function kl(sym,iv,lim){const url=encodeURIComponent(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${iv}&limit=${lim}`);const r=await fetch(PROXY+url);return r.json();}
-async function getFundingRate(sym){
+async function kl(sym,iv,lim){return cachedFetch(`https://api.binance.com/api/v3/klines?symbol=${sym}&interval=${iv}&limit=${lim}`,`kl_${sym}_${iv}`);}
+/* getFundingRate */ async function getFundingRate(sym){
   try{const r=await fetch(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${sym}USDT&limit=1`);const d=await r.json();return Array.isArray(d)&&d.length?parseFloat(d[0].fundingRate)*100:null;}catch(e){return null;}
 }
 async function getOrderBookDepth(sym){
@@ -745,19 +761,16 @@ async function runScan(){
   const btn=document.getElementById('scanBtn'),bTxt=document.getElementById('btnTxt'),sTxt=document.getElementById('statusTxt');
   btn.disabled=true;bTxt.innerHTML='<span class="spinner"></span>Scanning...';sTxt.textContent='Fetching market data...';cdVal=60;
   try{
-    const[gRes,cRes,fRes]=await Promise.all([
-      fetch(PROXY+encodeURIComponent('https://api.coingecko.com/api/v3/global')),
-      // Fetch BOTH by volume AND by price change to catch ENA/WLD type moves
-      fetch(PROXY+encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=60&page=1&sparkline=false&price_change_percentage=1h,24h')),
-      fetch(PROXY+encodeURIComponent('https://api.alternative.me/fng/?limit=1'))
-    ]);
-    const gData=await gRes.json(),cData=await cRes.json();
-    let fData;try{fData=await fRes.json();}catch(e){}
+    // Sequential requests to avoid rate limiting
+    const gData = await cachedFetch('https://api.coingecko.com/api/v3/global','cg_global');
+    const cData = await cachedFetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=volume_desc&per_page=60&page=1&sparkline=false&price_change_percentage=1h,24h','cg_markets');
+    let fData;
+    try{fData=await cachedFetch('https://api.alternative.me/fng/?limit=1','alt_fng');}catch(e){}
 
     // Also fetch coins sorted by 1hr price change to catch emerging movers
     let movingCoins=[];
     try{
-      const mRes=await fetch(PROXY+encodeURIComponent('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change&per_page=50&page=1&sparkline=false&price_change_percentage=1h,24h'));
+      const mRes={json:async()=>await cachedFetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=percent_change&per_page=50&page=1&sparkline=false&price_change_percentage=1h,24h','cg_movers')};
       movingCoins=await mRes.json();
     }catch(e){}
 
@@ -963,7 +976,7 @@ async function fetchWhales(){
   allWhaleData=[];
   await Promise.allSettled(syms.map(async sym=>{
     try{
-      const r=await fetch(PROXY+encodeURIComponent(`https://api.binance.com/api/v3/trades?symbol=${sym}&limit=1000`));
+      const r=await cachedFetch(`https://api.binance.com/api/v3/trades?symbol=${sym}&limit=500`,`trades_${sym}`);
       const trades=await r.json();
       if(!Array.isArray(trades)) return;
       trades.forEach(t=>{
@@ -1005,13 +1018,13 @@ async function fetchMarketData(){
   sTxt.textContent='Fetching data...';
   try{
     const syms=['BTCUSDT','ETHUSDT','BNBUSDT','SOLUSDT','XRPUSDT'];
-    const pf=s=>PROXY+encodeURIComponent(s);
+    const pf=(s,k)=>cachedFetch(s,k||s);
     const[oiData,lsData,liqData,volData,frData]=await Promise.allSettled([
-      Promise.all(syms.map(s=>fetch(pf(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${s}`)).then(r=>r.json()).then(d=>({sym:s.replace('USDT',''),oi:parseFloat(d.openInterest)})).catch(()=>null))),
-      Promise.all(syms.slice(0,3).map(s=>fetch(pf(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${s}&period=5m&limit=1`)).then(r=>r.json()).then(d=>({sym:s.replace('USDT',''),long:parseFloat(d[0]?.longAccount)*100,short:parseFloat(d[0]?.shortAccount)*100})).catch(()=>null))),
+      Promise.all(syms.map(s=>fetch(pf(`https://fapi.binance.com/fapi/v1/openInterest?symbol=${s}`, 'openInterest')).then(r=>r.json()).then(d=>({sym:s.replace('USDT',''),oi:parseFloat(d.openInterest)})).catch(()=>null))),
+      Promise.all(syms.slice(0,3).map(s=>fetch(pf(`https://fapi.binance.com/futures/data/globalLongShortAccountRatio?symbol=${s}&period=5m&limit=1`, 'globalLongShortAccountRatio')).then(r=>r.json()).then(d=>({sym:s.replace('USDT',''),long:parseFloat(d[0]?.longAccount)*100,short:parseFloat(d[0]?.shortAccount)*100})).catch(()=>null))),
       fetch(pf('https://fapi.binance.com/fapi/v1/forceOrders?limit=30')).then(r=>r.json()).catch(()=>[]),
-      Promise.all(syms.slice(0,3).map(s=>fetch(pf(`https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${s}&period=5m&limit=1`)).then(r=>r.json()).then(d=>({sym:s.replace('USDT',''),ratio:parseFloat(d[0]?.buySellRatio)})).catch(()=>null))),
-      Promise.all(syms.map(s=>fetch(pf(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${s}&limit=1`)).then(r=>r.json()).then(d=>({sym:s.replace('USDT',''),fr:parseFloat(d[0]?.fundingRate||0)*100})).catch(()=>null)))
+      Promise.all(syms.slice(0,3).map(s=>fetch(pf(`https://fapi.binance.com/futures/data/takerlongshortRatio?symbol=${s}&period=5m&limit=1`, 'takerlongshortRatio')).then(r=>r.json()).then(d=>({sym:s.replace('USDT',''),ratio:parseFloat(d[0]?.buySellRatio)})).catch(()=>null))),
+      Promise.all(syms.map(s=>fetch(pf(`https://fapi.binance.com/fapi/v1/fundingRate?symbol=${s}&limit=1`, 'fundingRate')).then(r=>r.json()).then(d=>({sym:s.replace('USDT',''),fr:parseFloat(d[0]?.fundingRate||0)*100})).catch(()=>null)))
     ]);
     let html='';
     const frRows=frData.status==='fulfilled'?frData.value.filter(Boolean):[];
